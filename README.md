@@ -28,7 +28,3 @@ To repozytorium zawiera zestaw gotowych playbooków Ansible wykorzystywanych w s
 ## 📃 Licencja
 
 MIT – używaj, modyfikuj, rozszerzaj.
-
----
-
-🛠 W razie potrzeby dodatkowych funkcji – np. raportowania, integracji z monitoringiem, filtracji hostów – daj znać i dostosuję playbooki.
