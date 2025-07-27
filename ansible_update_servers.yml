@@ -1,0 +1,28 @@
+---
+- name: Update all servers
+  hosts: all
+  become: true
+  gather_facts: yes
+
+  tasks:
+    - name: Update APT cache (Debian/Ubuntu)
+      apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Upgrade all packages (Debian/Ubuntu)
+      apt:
+        upgrade: dist
+      when: ansible_os_family == "Debian"
+
+    - name: Update YUM packages (RHEL/CentOS)
+      yum:
+        name: "*"
+        state: latest
+      when: ansible_os_family == "RedHat"
+
+    - name: Reboot if kernel was upgraded (Linux generic)
+      reboot:
+        reboot_timeout: 600
+      when: ansible_facts.packages['linux-image-generic'] is defined or ansible_facts.packages['kernel'] is defined
+      ignore_errors: yes
