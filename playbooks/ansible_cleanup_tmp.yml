@@ -3,26 +3,33 @@
   hosts: all
   become: true
   tasks:
-    - name: Clean /tmp directory
-      file:
-        path: /tmp
-        state: absent
-        recurse: yes
-      ignore_errors: yes
+    - name: Find all files and directories in /tmp
+      find:
+        paths: /tmp
+        file_type: any
+        excludes: ['.', '..']
+      register: tmp_contents
 
-    - name: Recreate /tmp directory
+    - name: Remove files and directories from /tmp
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ tmp_contents.files }}"
+      when: tmp_contents.matched > 0
+
+    - name: Ensure /tmp has correct permissions
       file:
         path: /tmp
         state: directory
         mode: '1777'
 
-    - name: Clear APT/YUM cache
+    - name: Clear APT cache and remove unused packages (Debian/Ubuntu)
       apt:
         autoclean: yes
         autoremove: yes
       when: ansible_os_family == "Debian"
 
-    - name: Clean YUM
+    - name: Clean and update YUM packages (RHEL/CentOS)
       yum:
         name: '*'
         state: latest
