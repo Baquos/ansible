@@ -1,0 +1,15 @@
+---
+- name: Audit SSH authorized_keys
+  hosts: all
+  become: true
+  tasks:
+    - name: List SSH authorized_keys
+      find:
+        paths: /home
+        patterns: authorized_keys
+        recurse: yes
+      register: ssh_keys
+
+    - name: Report authorized_keys files
+      debug:
+        var: ssh_keys.files

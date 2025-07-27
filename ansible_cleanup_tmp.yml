@@ -1,0 +1,29 @@
+---
+- name: Clean up temporary files and logs
+  hosts: all
+  become: true
+  tasks:
+    - name: Clean /tmp directory
+      file:
+        path: /tmp
+        state: absent
+        recurse: yes
+      ignore_errors: yes
+
+    - name: Recreate /tmp directory
+      file:
+        path: /tmp
+        state: directory
+        mode: '1777'
+
+    - name: Clear APT/YUM cache
+      apt:
+        autoclean: yes
+        autoremove: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Clean YUM
+      yum:
+        name: '*'
+        state: latest
+      when: ansible_os_family == "RedHat"
