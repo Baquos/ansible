@@ -1,0 +1,29 @@
+
+---
+- name: Check disk usage and send warning if threshold exceeded
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars:
+    disk_path: "/"          # Ścieżka do monitorowania
+    disk_threshold: 80      # Próg ostrzeżenia (w %)
+
+  tasks:
+    - name: Check disk usage using shell
+      shell: "df -h {{ disk_path }} | awk 'NR==2 {print $(NF-1)}' | tr -d '%'"
+      register: disk_usage_raw
+      changed_when: false
+
+    - name: Convert usage to integer
+      set_fact:
+        disk_usage: "{{ disk_usage_raw.stdout | int }}"
+
+    - name: Show current disk usage
+      debug:
+        msg: "Host {{ inventory_hostname }}: {{ disk_path }} usage is {{ disk_usage }}%"
+
+    - name: Warn if disk usage exceeds threshold
+      debug:
+        msg: "⚠️ WARNING: Host {{ inventory_hostname }}: Disk usage on {{ disk_path }} is {{ disk_usage }}% (over {{ disk_threshold }}%)!"
+      when: disk_usage > disk_threshold
