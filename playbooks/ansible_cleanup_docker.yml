@@ -1,0 +1,24 @@
+---
+- name: Cleanup unused Docker networks and volumes
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Remove unused Docker networks
+      community.docker.docker_network:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ docker_unused_networks }}"
+      when: docker_unused_networks | length > 0
+      vars:
+        # Pobieramy listę wszystkich nieużywanych sieci
+        docker_unused_networks: "{{ lookup('pipe', 'docker network prune -f --filter until=0h && docker network ls -q') | split('\n') | difference(docker_used_networks) }}"
+        docker_used_networks: []
+
+    - name: Prune unused Docker volumes
+      ansible.builtin.command: docker volume prune -f
+      register: volume_prune
+
+    - name: Show prune result
+      debug:
+        var: volume_prune.stdout
