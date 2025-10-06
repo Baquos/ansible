@@ -1,0 +1,59 @@
+---
+- name: Update NetBird on Debian/Ubuntu and Alpine servers
+  hosts: all
+  become: true
+  gather_facts: yes
+
+  vars:
+    netbird_release_url: "https://api.github.com/repos/netbirdio/netbird/releases/latest"
+    netbird_bin_path: "/usr/local/bin/netbird"
+
+  tasks:
+    - name: Get latest NetBird release info
+      uri:
+        url: "{{ netbird_release_url }}"
+        return_content: yes
+      register: release_info
+
+    - name: Set NetBird version
+      set_fact:
+        netbird_version: "{{ (release_info.json.tag_name | regex_replace('^v', '')) }}"
+
+    - name: Determine architecture
+      set_fact:
+        arch: "{{ 'amd64' if ansible_architecture in ['x86_64'] else 'arm64' if ansible_architecture in ['aarch64'] else ansible_architecture }}"
+
+    - name: Download NetBird binary
+      get_url:
+        url: "https://github.com/netbirdio/netbird/releases/download/v{{ netbird_version }}/netbird_{{ netbird_version }}_linux_{{ arch }}.tar.gz"
+        dest: "/tmp/netbird.tar.gz"
+        mode: '0644'
+
+    - name: Extract NetBird binary
+      unarchive:
+        src: "/tmp/netbird.tar.gz"
+        dest: "/tmp/"
+        remote_src: yes
+
+    - name: Install NetBird binary
+      copy:
+        src: "/tmp/netbird"
+        dest: "{{ netbird_bin_path }}"
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Restart NetBird service
+      systemd:
+        name: netbird
+        state: restarted
+        enabled: yes
+
+    - name: Verify NetBird version
+      command: "{{ netbird_bin_path }} version"
+      register: netbird_check
+      changed_when: false
+
+    - name: Show installed NetBird version
+      debug:
+        msg: "Host {{ inventory_hostname }} updated to NetBird {{ netbird_check.stdout }}"
